@@ -11,20 +11,40 @@
       // Show loading state
       showLoading();
 
-      // Initialize Supabase if configured
+      // Initialize Supabase - this is required
       const supabaseReady = await SupabaseClient.init();
-      if (supabaseReady) {
-        console.log('Supabase initialized');
-      } else {
-        console.log('Running in offline mode (no Supabase)');
+
+      if (!supabaseReady) {
+        // Supabase not configured - show login screen anyway
+        hideLoading();
+        UI.renderLoginScreen();
+        console.log('Supabase not configured - showing login screen');
+        return;
+      }
+
+      // Check authentication BEFORE trying to render dashboard
+      const isAuth = SupabaseClient.isAuthenticated();
+
+      if (!isAuth) {
+        // Not authenticated - show login screen immediately
+        hideLoading();
+        UI.renderLoginScreen();
+        console.log('User not authenticated - showing login screen');
+        return;
       }
 
       // Listen for auth changes
-      window.addEventListener('authChange', () => {
-        UI.render();
+      window.addEventListener('authChange', (e) => {
+        if (e.detail?.user) {
+          // User logged in - reload to show dashboard
+          window.location.reload();
+        } else {
+          // User logged out - show login screen
+          UI.renderLoginScreen();
+        }
       });
 
-      // Render the dashboard
+      // User is authenticated - render the dashboard
       await UI.render();
 
       // Hide loading state
@@ -34,7 +54,8 @@
     } catch (error) {
       console.error('Failed to initialize dashboard:', error);
       hideLoading();
-      showError('Failed to load dashboard. Please refresh the page.');
+      // On any error, show login screen instead of error
+      UI.renderLoginScreen();
     }
   });
 
@@ -90,40 +111,6 @@
       loader.style.transition = 'opacity 0.3s ease';
       setTimeout(() => loader.remove(), 300);
     }
-  }
-
-  /**
-   * Show error message
-   */
-  function showError(message) {
-    const error = document.createElement('div');
-    error.className = 'dashboard-error';
-    error.innerHTML = `
-      <style>
-        .dashboard-error {
-          position: fixed;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          background: var(--danger-bg, #FEF2F2);
-          border: 1px solid var(--danger, #EF4444);
-          padding: 2rem;
-          border-radius: 14px;
-          text-align: center;
-          max-width: 400px;
-        }
-        .dashboard-error h2 {
-          color: var(--danger, #EF4444);
-          margin-bottom: 0.5rem;
-        }
-        .dashboard-error p {
-          color: var(--ink-muted, #334155);
-        }
-      </style>
-      <h2>Error</h2>
-      <p>${message}</p>
-    `;
-    document.body.appendChild(error);
   }
 
   /**
