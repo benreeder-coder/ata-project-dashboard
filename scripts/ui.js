@@ -8,6 +8,14 @@ const UI = {
   viewMode: 'all', // 'all' or 'my'
 
   async render() {
+    // Check if user is authenticated
+    const isAuth = window.SupabaseClient?.isAuthenticated();
+
+    if (!isAuth) {
+      this.renderLoginScreen();
+      return;
+    }
+
     const data = await DataManager.loadData();
     if (!data) {
       document.body.innerHTML = '<div class="empty-state"><div class="empty-icon">!</div><div class="empty-text">Failed to load project data</div></div>';
@@ -18,6 +26,9 @@ const UI = {
     this.activePhase = data.phases.find(p => p.status === 'in_progress')
       || data.phases.find(p => p.status !== 'complete')
       || data.phases[0];
+
+    // Restore the dashboard HTML if we're coming from login screen
+    this.ensureDashboardStructure();
 
     this.renderTopBar(data);
     this.renderUserMenu();
@@ -30,6 +41,124 @@ const UI = {
     this.attachEventListeners(data);
 
     setTimeout(() => this.animateProgress(data), 100);
+  },
+
+  renderLoginScreen() {
+    const teamMember = window.SupabaseClient?.getTeamMember();
+
+    document.body.innerHTML = `
+      <div class="login-screen">
+        <div class="login-container">
+          <div class="login-header">
+            <div class="login-logo">
+              <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                <rect width="48" height="48" rx="12" fill="var(--accent)"/>
+                <path d="M14 24L22 32L34 16" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <h1 class="login-title">BTB AI - ATA Automation</h1>
+            <p class="login-subtitle">Project Dashboard</p>
+          </div>
+
+          <div class="login-card">
+            <div class="login-card-header">
+              <h2 id="login-mode-title">Sign In</h2>
+              <p class="login-card-text">Enter your credentials to access the dashboard</p>
+            </div>
+
+            <form id="login-form" class="login-form">
+              <div class="form-group">
+                <label for="login-email">Email Address</label>
+                <input type="email" id="login-email" placeholder="you@example.com" required autocomplete="email">
+              </div>
+              <div class="form-group">
+                <label for="login-password">Password</label>
+                <input type="password" id="login-password" placeholder="••••••••" required minlength="6" autocomplete="current-password">
+              </div>
+              <button type="submit" class="btn-primary btn-full" id="login-submit">Sign In</button>
+            </form>
+
+            <div id="login-message" class="login-message"></div>
+
+            <div class="login-footer">
+              <span id="toggle-text">Don't have an account?</span>
+              <button type="button" id="toggle-mode" class="btn-link">Sign Up</button>
+            </div>
+          </div>
+
+          <div class="login-info">
+            <p>Team members can sign in to view and manage their assigned tasks.</p>
+          </div>
+        </div>
+      </div>
+    `;
+
+    this.attachLoginListeners();
+  },
+
+  attachLoginListeners() {
+    let isSignUp = false;
+    const form = document.getElementById('login-form');
+    const modeTitle = document.getElementById('login-mode-title');
+    const submitBtn = document.getElementById('login-submit');
+    const toggleText = document.getElementById('toggle-text');
+    const toggleMode = document.getElementById('toggle-mode');
+    const messageEl = document.getElementById('login-message');
+
+    // Toggle between sign in and sign up
+    toggleMode?.addEventListener('click', () => {
+      isSignUp = !isSignUp;
+      modeTitle.textContent = isSignUp ? 'Create Account' : 'Sign In';
+      submitBtn.textContent = isSignUp ? 'Create Account' : 'Sign In';
+      toggleText.textContent = isSignUp ? 'Already have an account?' : "Don't have an account?";
+      toggleMode.textContent = isSignUp ? 'Sign In' : 'Sign Up';
+      messageEl.textContent = '';
+      messageEl.className = 'login-message';
+
+      // Update password field autocomplete
+      const passwordInput = document.getElementById('login-password');
+      passwordInput.autocomplete = isSignUp ? 'new-password' : 'current-password';
+    });
+
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = isSignUp ? 'Creating account...' : 'Signing in...';
+
+      try {
+        if (isSignUp) {
+          await window.SupabaseClient.signUp(email, password);
+          messageEl.className = 'login-message success';
+          messageEl.textContent = 'Account created successfully! You can now sign in.';
+          // Switch to sign in mode
+          isSignUp = false;
+          modeTitle.textContent = 'Sign In';
+          toggleText.textContent = "Don't have an account?";
+          toggleMode.textContent = 'Sign Up';
+        } else {
+          await window.SupabaseClient.signIn(email, password);
+          // Reload will trigger render which will show dashboard
+          window.location.reload();
+        }
+      } catch (error) {
+        messageEl.className = 'login-message error';
+        messageEl.textContent = error.message || 'Authentication failed. Please try again.';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = isSignUp ? 'Create Account' : 'Sign In';
+      }
+    });
+  },
+
+  ensureDashboardStructure() {
+    // Check if dashboard structure exists
+    if (!document.getElementById('phase-nav')) {
+      // Need to reload the page to restore dashboard HTML
+      window.location.reload();
+    }
   },
 
   renderTopBar(data) {
