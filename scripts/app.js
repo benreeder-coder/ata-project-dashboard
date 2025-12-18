@@ -11,18 +11,29 @@
       // Show loading state
       showLoading();
 
+      // Initialize Supabase if configured
+      const supabaseReady = await SupabaseClient.init();
+      if (supabaseReady) {
+        console.log('Supabase initialized');
+      } else {
+        console.log('Running in offline mode (no Supabase)');
+      }
+
+      // Listen for auth changes
+      window.addEventListener('authChange', () => {
+        UI.render();
+      });
+
       // Render the dashboard
       await UI.render();
 
       // Hide loading state
       hideLoading();
 
-      // Add smooth animations
-      animateIn();
-
       console.log('ATA Dashboard initialized successfully');
     } catch (error) {
       console.error('Failed to initialize dashboard:', error);
+      hideLoading();
       showError('Failed to load dashboard. Please refresh the page.');
     }
   });
@@ -38,7 +49,7 @@
         #dashboard-loader {
           position: fixed;
           inset: 0;
-          background: var(--bg-primary);
+          background: var(--paper, #FAFBFC);
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -49,15 +60,15 @@
         .loader-spinner {
           width: 48px;
           height: 48px;
-          border: 4px solid var(--border-default);
-          border-top-color: var(--ata-navy);
+          border: 4px solid var(--paper-cool, #F1F5F9);
+          border-top-color: var(--accent, #0077B5);
           border-radius: 50%;
           animation: spin 1s linear infinite;
         }
         .loader-text {
-          font-family: var(--font-sans);
-          font-size: var(--text-sm);
-          color: var(--text-secondary);
+          font-family: var(--font-body, system-ui);
+          font-size: 14px;
+          color: var(--muted, #94A3B8);
         }
         @keyframes spin {
           to { transform: rotate(360deg); }
@@ -94,56 +105,25 @@
           top: 50%;
           left: 50%;
           transform: translate(-50%, -50%);
-          background: var(--status-blocked-bg);
-          border: 1px solid var(--status-blocked);
+          background: var(--danger-bg, #FEF2F2);
+          border: 1px solid var(--danger, #EF4444);
           padding: 2rem;
-          border-radius: var(--radius-xl);
+          border-radius: 14px;
           text-align: center;
           max-width: 400px;
         }
         .dashboard-error h2 {
-          color: var(--status-blocked);
+          color: var(--danger, #EF4444);
           margin-bottom: 0.5rem;
         }
         .dashboard-error p {
-          color: var(--text-secondary);
+          color: var(--ink-muted, #334155);
         }
       </style>
-      <h2>⚠ Error</h2>
+      <h2>Error</h2>
       <p>${message}</p>
     `;
     document.body.appendChild(error);
-  }
-
-  /**
-   * Add entrance animations
-   */
-  function animateIn() {
-    // Animate phase cards
-    const phaseCards = document.querySelectorAll('.phase-card');
-    phaseCards.forEach((card, index) => {
-      card.style.opacity = '0';
-      card.style.transform = 'translateY(20px)';
-      card.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
-
-      setTimeout(() => {
-        card.style.opacity = '1';
-        card.style.transform = 'translateY(0)';
-      }, 100 + index * 80);
-    });
-
-    // Animate panels
-    const panels = document.querySelectorAll('.section-panel');
-    panels.forEach((panel, index) => {
-      panel.style.opacity = '0';
-      panel.style.transform = 'translateY(20px)';
-      panel.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
-
-      setTimeout(() => {
-        panel.style.opacity = '1';
-        panel.style.transform = 'translateY(0)';
-      }, 400 + index * 100);
-    });
   }
 
   /**
@@ -153,34 +133,5 @@
     showLoading();
     await UI.render();
     hideLoading();
-    animateIn();
-  };
-
-  /**
-   * Export data as JSON (for backup/sharing)
-   */
-  window.exportData = function () {
-    const data = DataManager.projectData;
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `ata-project-data-${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  /**
-   * Print dashboard
-   */
-  window.printDashboard = function () {
-    // Expand all phase cards before printing
-    document.querySelectorAll('.phase-card').forEach((card) => {
-      card.classList.add('expanded');
-    });
-
-    setTimeout(() => {
-      window.print();
-    }, 100);
   };
 })();

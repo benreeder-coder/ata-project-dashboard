@@ -28,18 +28,17 @@
       <div class="topbar-left">
         <img src="assets/logo.webp" alt="ATA" class="logo">
         <div class="project-info">
-          <h1 class="project-name">Sales Automation</h1>
-          <span class="project-client">Applied Technology Academy</span>
+          <h1 class="project-name">BTB AI - ATA Automation</h1>
+          <span class="project-client">Project Dashboard</span>
         </div>
       </div>
       <div class="topbar-right">
         <div class="meta-pill">
-          <span class="meta-label">Contract</span>
-          <span class="meta-value" id="contract-ref">Z44XV-EYF3L</span>
-        </div>
-        <div class="meta-pill">
           <span class="meta-label">Updated</span>
           <span class="meta-value" id="last-updated">Dec 18</span>
+        </div>
+        <div class="user-menu" id="user-menu">
+          <!-- Populated by auth -->
         </div>
       </div>
     </header>
@@ -141,6 +140,8 @@
   </div>
 
   <!-- Scripts -->
+  <script src="scripts/config.js"></script>
+  <script src="scripts/supabase.js"></script>
   <script src="scripts/data.js"></script>
   <script src="scripts/ui.js"></script>
   <script src="scripts/app.js"></script>
