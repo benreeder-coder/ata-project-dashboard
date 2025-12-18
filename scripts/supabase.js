@@ -77,14 +77,25 @@ const SupabaseClient = {
   },
 
   /**
-   * Sign in with email (magic link)
+   * Sign up with email and password
    */
-  async signInWithEmail(email) {
-    const { data, error } = await this.client.auth.signInWithOtp({
+  async signUp(email, password) {
+    const { data, error } = await this.client.auth.signUp({
       email,
-      options: {
-        emailRedirectTo: window.location.origin + window.location.pathname
-      }
+      password
+    });
+
+    if (error) throw error;
+    return data;
+  },
+
+  /**
+   * Sign in with email and password
+   */
+  async signIn(email, password) {
+    const { data, error } = await this.client.auth.signInWithPassword({
+      email,
+      password
     });
 
     if (error) throw error;

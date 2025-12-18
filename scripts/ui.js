@@ -111,36 +111,73 @@ const UI = {
           <button class="modal-close">&times;</button>
         </div>
         <div class="modal-body">
-          <p class="modal-text">Enter your email to receive a magic link</p>
           <form id="login-form">
             <div class="form-group">
               <label for="login-email">Email</label>
               <input type="email" id="login-email" placeholder="you@example.com" required>
             </div>
-            <button type="submit" class="btn-primary btn-full">Send Magic Link</button>
+            <div class="form-group">
+              <label for="login-password">Password</label>
+              <input type="password" id="login-password" placeholder="Your password" required minlength="6">
+            </div>
+            <button type="submit" class="btn-primary btn-full">Sign In</button>
           </form>
           <div id="login-message" class="login-message"></div>
+          <div class="login-toggle">
+            <span id="toggle-text">Don't have an account?</span>
+            <button type="button" id="toggle-mode" class="btn-link">Sign Up</button>
+          </div>
         </div>
       </div>
     `;
     document.body.appendChild(modal);
 
+    let isSignUp = false;
+
     modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
     modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+
+    // Toggle between sign in and sign up
+    modal.querySelector('#toggle-mode').addEventListener('click', () => {
+      isSignUp = !isSignUp;
+      modal.querySelector('.modal-header h2').textContent = isSignUp ? 'Sign Up' : 'Sign In';
+      modal.querySelector('button[type="submit"]').textContent = isSignUp ? 'Create Account' : 'Sign In';
+      modal.querySelector('#toggle-text').textContent = isSignUp ? 'Already have an account?' : "Don't have an account?";
+      modal.querySelector('#toggle-mode').textContent = isSignUp ? 'Sign In' : 'Sign Up';
+      modal.querySelector('#login-message').textContent = '';
+      modal.querySelector('#login-message').className = 'login-message';
+    });
 
     modal.querySelector('#login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const email = modal.querySelector('#login-email').value;
+      const password = modal.querySelector('#login-password').value;
       const messageEl = modal.querySelector('#login-message');
+      const submitBtn = modal.querySelector('button[type="submit"]');
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = isSignUp ? 'Creating...' : 'Signing in...';
 
       try {
-        await window.SupabaseClient.signInWithEmail(email);
-        messageEl.className = 'login-message success';
-        messageEl.textContent = 'Check your email for the magic link!';
-        modal.querySelector('form').style.display = 'none';
+        if (isSignUp) {
+          await window.SupabaseClient.signUp(email, password);
+          messageEl.className = 'login-message success';
+          messageEl.textContent = 'Account created! You can now sign in.';
+          isSignUp = false;
+          modal.querySelector('.modal-header h2').textContent = 'Sign In';
+          modal.querySelector('#toggle-text').textContent = "Don't have an account?";
+          modal.querySelector('#toggle-mode').textContent = 'Sign Up';
+        } else {
+          await window.SupabaseClient.signIn(email, password);
+          modal.remove();
+          window.location.reload();
+        }
       } catch (error) {
         messageEl.className = 'login-message error';
-        messageEl.textContent = error.message || 'Failed to send magic link';
+        messageEl.textContent = error.message || 'Authentication failed';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = isSignUp ? 'Create Account' : 'Sign In';
       }
     });
   },
