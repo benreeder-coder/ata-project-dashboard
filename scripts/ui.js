@@ -1,248 +1,150 @@
 /**
- * ATA Project Dashboard - UI Rendering Module
+ * ATA Project Dashboard - UI Module
+ * Clean, focused interface rendering
  */
 
 const UI = {
-  /**
-   * Render the entire dashboard
-   */
+  activePhase: null,
+
   async render() {
     const data = await DataManager.loadData();
     if (!data) {
-      document.body.innerHTML = '<div class="error">Failed to load project data</div>';
+      document.body.innerHTML = '<div class="empty-state"><div class="empty-icon">!</div><div class="empty-text">Failed to load project data</div></div>';
       return;
     }
 
-    this.renderHeader(data);
-    this.renderSidebar(data);
-    this.renderMainContent(data);
-    this.attachEventListeners();
+    // Find the current active phase (in_progress or first incomplete)
+    this.activePhase = data.phases.find(p => p.status === 'in_progress')
+      || data.phases.find(p => p.status !== 'complete')
+      || data.phases[0];
+
+    this.renderTopBar(data);
+    this.renderHeroStats(data);
+    this.renderPhaseNav(data);
+    this.renderPhaseDetail(this.activePhase, data);
+    this.renderActionItems(data);
+    this.renderBlockers(data);
+    this.renderTeam(data);
+    this.attachEventListeners(data);
+
+    // Animate progress ring after a brief delay
+    setTimeout(() => this.animateProgress(data), 100);
   },
 
-  /**
-   * Render header section
-   */
-  renderHeader(data) {
+  renderTopBar(data) {
+    const contractRef = data.project.contractRef.split('-').slice(0, 2).join('-');
+    const lastUpdated = DataManager.formatDate(data.project.lastUpdated);
+
+    document.getElementById('contract-ref').textContent = contractRef;
+    document.getElementById('last-updated').textContent = lastUpdated;
+  },
+
+  renderHeroStats(data) {
     const progress = DataManager.calculateOverallProgress();
+    const completed = DataManager.getCompletedTasks();
+    const total = DataManager.getTotalTasks();
     const daysRemaining = DataManager.getDaysRemaining();
-    const completedTasks = DataManager.getCompletedTasks();
-    const totalTasks = DataManager.getTotalTasks();
-
-    const circumference = 2 * Math.PI * 18;
-    const offset = circumference - (progress / 100) * circumference;
-
-    document.getElementById('header-content').innerHTML = `
-      <div class="header-left">
-        <img src="assets/logo.webp" alt="ATA Logo" class="logo" />
-        <div class="header-divider"></div>
-        <div class="project-title">
-          <h1>${data.project.name}</h1>
-          <span class="last-updated">Updated: ${DataManager.formatDate(data.project.lastUpdated, 'long')}</span>
-        </div>
-      </div>
-      <div class="header-right">
-        <div class="overall-progress">
-          <div class="progress-ring">
-            <svg width="44" height="44" viewBox="0 0 44 44">
-              <circle class="progress-ring-bg" cx="22" cy="22" r="18" />
-              <circle class="progress-ring-fill" cx="22" cy="22" r="18"
-                stroke-dasharray="${circumference}"
-                stroke-dashoffset="${offset}" />
-            </svg>
-            <span class="progress-percent">${progress}%</span>
-          </div>
-          <div class="progress-info">
-            <span class="progress-label">${completedTasks}/${totalTasks} Tasks</span>
-            <span class="progress-sublabel">Project Progress</span>
-          </div>
-        </div>
-        <div class="days-remaining ${daysRemaining < 14 ? 'urgent' : ''}">
-          <span class="days-remaining-number">${daysRemaining}</span>
-          <span>days left</span>
-        </div>
-      </div>
-    `;
-  },
-
-  /**
-   * Render sidebar section
-   */
-  renderSidebar(data) {
-    const sidebar = document.getElementById('sidebar-content');
-
-    // Project Meta
-    const projectMeta = `
-      <div class="sidebar-section">
-        <h3 class="sidebar-section-title">Project Info</h3>
-        <div class="project-meta">
-          <div class="meta-item">
-            <span class="meta-label">Client</span>
-            <span class="meta-value">${data.project.client}</span>
-          </div>
-          <div class="meta-item">
-            <span class="meta-label">Start</span>
-            <span class="meta-value">${DataManager.formatDate(data.project.startDate)}</span>
-          </div>
-          <div class="meta-item">
-            <span class="meta-label">End</span>
-            <span class="meta-value">${DataManager.formatDate(data.project.endDate)}</span>
-          </div>
-          <div class="meta-item">
-            <span class="meta-label">Investment</span>
-            <span class="meta-value currency">$${data.project.totalInvestment.toLocaleString()}</span>
-          </div>
-        </div>
-      </div>
-    `;
-
-    // Stakeholders
-    const stakeholdersList = data.stakeholders
-      .map((s) => {
-        const actionCount = DataManager.getStakeholderActionCount(s.id);
-        return `
-        <div class="stakeholder-item" data-stakeholder="${s.id}">
-          <div class="stakeholder-avatar" style="background: ${s.color}">${s.initials}</div>
-          <div class="stakeholder-info">
-            <div class="stakeholder-name">${s.name}</div>
-            <div class="stakeholder-role">${s.role}</div>
-          </div>
-          ${actionCount > 0 ? `<span class="stakeholder-count">${actionCount}</span>` : ''}
-        </div>
-      `;
-      })
-      .join('');
-
-    const stakeholders = `
-      <div class="sidebar-section">
-        <h3 class="sidebar-section-title">Team</h3>
-        <div class="stakeholder-list">${stakeholdersList}</div>
-      </div>
-    `;
-
-    // Key Dates
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const keyDatesList = data.phases
-      .map((phase) => {
-        const deadline = new Date(phase.deadline);
-        deadline.setHours(0, 0, 0, 0);
-        const daysUntil = DataManager.getDaysUntil(phase.deadline);
-
-        let statusClass = 'upcoming';
-        let statusText = `${daysUntil}d`;
-
-        if (deadline < today) {
-          statusClass = 'past';
-          statusText = 'Past';
-        } else if (phase.status === 'in_progress') {
-          statusClass = 'current';
-          if (daysUntil <= 0) {
-            statusText = 'Due today';
-          } else if (daysUntil <= 7) {
-            statusText = `${daysUntil}d left`;
-          }
-        }
-
-        const statusLabelClass = daysUntil < 0 ? 'overdue' : daysUntil <= 7 ? 'soon' : '';
-
-        return `
-        <div class="date-item ${statusClass}">
-          <span class="date-phase">P${phase.number}</span>
-          <span class="date-value">${DataManager.formatDate(phase.deadline)}</span>
-          <span class="date-status ${statusLabelClass}">${statusText}</span>
-        </div>
-      `;
-      })
-      .join('');
-
-    const keyDates = `
-      <div class="sidebar-section">
-        <h3 class="sidebar-section-title">Key Dates</h3>
-        <div class="key-dates">${keyDatesList}</div>
-      </div>
-    `;
-
-    sidebar.innerHTML = projectMeta + stakeholders + keyDates;
-  },
-
-  /**
-   * Render main content area
-   */
-  renderMainContent(data) {
-    const main = document.getElementById('main-content');
-
-    // Alerts Bar
     const blockedCount = DataManager.getBlockedTasks().length;
     const overdueCount = DataManager.getOverdueItems().length;
 
-    const alertsBar =
-      blockedCount > 0 || overdueCount > 0
-        ? `
-      <div class="alerts-bar">
-        ${
-          blockedCount > 0
-            ? `
-          <div class="alert-card blocked">
-            <div class="alert-icon">⚠</div>
-            <div class="alert-content">
-              <div class="alert-count">${blockedCount}</div>
-              <div class="alert-label">Blocked ${blockedCount === 1 ? 'Task' : 'Tasks'}</div>
-            </div>
-          </div>
-        `
-            : ''
-        }
-        ${
-          overdueCount > 0
-            ? `
-          <div class="alert-card overdue">
-            <div class="alert-icon">⏰</div>
-            <div class="alert-content">
-              <div class="alert-count">${overdueCount}</div>
-              <div class="alert-label">Overdue ${overdueCount === 1 ? 'Item' : 'Items'}</div>
-            </div>
-          </div>
-        `
-            : ''
-        }
-      </div>
-    `
-        : '';
+    // Tasks summary
+    document.getElementById('progress-percent').textContent = progress;
+    document.getElementById('tasks-summary').textContent = `${completed} of ${total} tasks`;
 
-    // Phase Cards
-    const phaseCards = data.phases.map((phase) => this.renderPhaseCard(phase, data)).join('');
+    // Timeline
+    const startDate = new Date(data.project.startDate);
+    const endDate = new Date(data.project.endDate);
+    const today = new Date();
+    const totalDays = (endDate - startDate) / (1000 * 60 * 60 * 24);
+    const elapsedDays = Math.max(0, (today - startDate) / (1000 * 60 * 60 * 24));
+    const elapsedPercent = Math.min(100, Math.max(0, (elapsedDays / totalDays) * 100));
 
-    // Blockers & Decisions Panel
-    const blockersDecisions = this.renderBlockersDecisions(data);
+    document.getElementById('start-date').textContent = DataManager.formatDate(data.project.startDate);
+    document.getElementById('end-date').textContent = DataManager.formatDate(data.project.endDate);
+    document.getElementById('timeline-elapsed').style.width = `${elapsedPercent}%`;
+    document.getElementById('timeline-marker').style.left = `${elapsedPercent}%`;
 
-    // Action Items Panel
-    const actionItems = this.renderActionItems(data);
+    document.getElementById('days-remaining').textContent = `${daysRemaining} days left`;
 
-    // Future Scope Panel
-    const futureScope = this.renderFutureScope(data);
+    // Timeline status
+    const progressRate = progress / elapsedPercent;
+    let statusText = 'On track';
+    if (progressRate < 0.7) statusText = 'Behind schedule';
+    else if (progressRate > 1.2) statusText = 'Ahead of schedule';
+    document.getElementById('timeline-status').textContent = statusText;
 
-    main.innerHTML = `
-      ${alertsBar}
-      <div class="phases-grid">${phaseCards}</div>
-      <div class="content-grid">
-        <div class="left-column">
-          ${blockersDecisions}
-        </div>
-        <div class="right-column">
-          ${actionItems}
-          ${futureScope}
-        </div>
-      </div>
-    `;
+    // Alerts
+    const alertsCard = document.getElementById('alerts-card');
+    const alertIndicators = document.getElementById('alert-indicators');
+    const alertsTitle = document.getElementById('alerts-title');
+    const alertsSubtitle = document.getElementById('alerts-subtitle');
+
+    if (blockedCount > 0 || overdueCount > 0) {
+      alertsCard.classList.add('has-alerts');
+
+      let dots = '';
+      if (blockedCount > 0) {
+        dots += `<div class="alert-dot danger"></div>`;
+      }
+      if (overdueCount > 0) {
+        dots += `<div class="alert-dot warning"></div>`;
+      }
+      alertIndicators.innerHTML = dots;
+
+      const issues = [];
+      if (blockedCount > 0) issues.push(`${blockedCount} blocked`);
+      if (overdueCount > 0) issues.push(`${overdueCount} overdue`);
+
+      alertsTitle.textContent = 'Needs Attention';
+      alertsSubtitle.textContent = issues.join(', ');
+    } else {
+      alertsCard.classList.remove('has-alerts');
+      alertIndicators.innerHTML = '<div class="alert-dot" style="background: var(--success);"></div>';
+      alertsTitle.textContent = 'All Clear';
+      alertsSubtitle.textContent = 'No blockers';
+    }
   },
 
-  /**
-   * Render a phase card
-   */
-  renderPhaseCard(phase, data) {
+  animateProgress(data) {
+    const progress = DataManager.calculateOverallProgress();
+    const circumference = 2 * Math.PI * 52;
+    const offset = circumference - (progress / 100) * circumference;
+
+    const ringFill = document.getElementById('ring-fill');
+    if (ringFill) {
+      ringFill.style.strokeDashoffset = offset;
+    }
+  },
+
+  renderPhaseNav(data) {
+    const nav = document.getElementById('phase-nav');
+
+    nav.innerHTML = data.phases.map(phase => {
+      const progress = DataManager.calculatePhaseProgress(phase);
+      const isActive = phase.id === this.activePhase.id;
+
+      let statusText = phase.status.replace('_', ' ');
+      if (phase.status === 'complete') statusText = '100%';
+      else if (progress > 0) statusText = `${progress}%`;
+
+      return `
+        <button class="phase-tab ${isActive ? 'active' : ''}" data-phase="${phase.number}" data-phase-id="${phase.id}">
+          <div class="phase-tab-number">${phase.number}</div>
+          <div class="phase-tab-info">
+            <span class="phase-tab-name">${phase.name}</span>
+            <span class="phase-tab-status">${statusText}</span>
+          </div>
+          <div class="phase-tab-progress">
+            <div class="phase-tab-progress-fill" style="width: ${progress}%"></div>
+          </div>
+        </button>
+      `;
+    }).join('');
+  },
+
+  renderPhaseDetail(phase, data) {
+    const container = document.getElementById('phase-detail');
     const progress = DataManager.calculatePhaseProgress(phase);
-    const stats = DataManager.getPhaseStats(phase);
     const daysUntil = DataManager.getDaysUntil(phase.deadline);
 
     let daysClass = 'on-track';
@@ -255,310 +157,222 @@ const UI = {
       daysText = daysUntil === 0 ? 'Due today' : `${daysUntil}d left`;
     }
 
-    const tasksHtml = phase.tasks.map((task) => this.renderTaskItem(task, data)).join('');
+    // Group tasks by status
+    const blocked = phase.tasks.filter(t => t.status === 'blocked');
+    const inProgress = phase.tasks.filter(t => t.status === 'in_progress');
+    const notStarted = phase.tasks.filter(t => t.status === 'not_started');
+    const complete = phase.tasks.filter(t => t.status === 'complete');
 
-    return `
-      <div class="phase-card" data-phase="${phase.number}" data-phase-id="${phase.id}">
-        <div class="phase-card-header">
-          <div class="phase-number">${phase.number}</div>
-          <div class="phase-info">
-            <div class="phase-name">${phase.name}</div>
-            <div class="phase-description">${phase.description}</div>
-            <div class="phase-deadline">
-              <span class="phase-deadline-icon">📅</span>
-              <span>${DataManager.formatDate(phase.deadline)}</span>
-              <span class="phase-days ${daysClass}">${daysText}</span>
-            </div>
+    container.setAttribute('data-phase', phase.number);
+    container.innerHTML = `
+      <div class="phase-header">
+        <div class="phase-header-left">
+          <div class="phase-title">
+            <div class="phase-number">${phase.number}</div>
+            <h2 class="phase-name">${phase.name}</h2>
           </div>
-          <div class="phase-status-badge ${phase.status}">${phase.status.replace('_', ' ')}</div>
+          <p class="phase-description">${phase.description}</p>
         </div>
-        <div class="phase-card-progress">
-          <div class="progress-bar-container">
-            <div class="progress-bar">
-              <div class="progress-bar-fill" style="width: ${progress}%"></div>
-            </div>
-            <span class="progress-text">${progress}%</span>
+        <div class="phase-header-right">
+          <div class="phase-deadline">
+            <span class="phase-deadline-date">${DataManager.formatDate(phase.deadline)}</span>
+            <span class="phase-deadline-days ${daysClass}">${daysText}</span>
+          </div>
+          <div class="phase-progress-bar">
+            <div class="phase-progress-fill" style="width: ${progress}%"></div>
           </div>
         </div>
-        <div class="phase-card-stats">
-          <div class="stat-item complete">
-            <span class="stat-value">${stats.complete}</span>
-            <span>done</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-value">${stats.inProgress}</span>
-            <span>active</span>
-          </div>
-          ${
-            stats.blocked > 0
-              ? `
-            <div class="stat-item blocked">
-              <span class="stat-value">${stats.blocked}</span>
-              <span>blocked</span>
-            </div>
-          `
-              : ''
-          }
-          <div class="expand-toggle">
-            <span class="expand-icon">▼</span>
-            <span>Details</span>
-          </div>
-        </div>
-        <div class="phase-card-tasks">
-          <div class="task-list">${tasksHtml}</div>
-        </div>
+      </div>
+      <div class="task-list">
+        ${blocked.length > 0 ? this.renderTaskGroup('Blocked', blocked, data) : ''}
+        ${inProgress.length > 0 ? this.renderTaskGroup('In Progress', inProgress, data) : ''}
+        ${notStarted.length > 0 ? this.renderTaskGroup('Not Started', notStarted, data) : ''}
+        ${complete.length > 0 ? this.renderTaskGroup('Complete', complete, data) : ''}
       </div>
     `;
   },
 
-  /**
-   * Render a task item
-   */
-  renderTaskItem(task, data) {
+  renderTaskGroup(title, tasks, data) {
+    return `
+      <div class="task-group">
+        <div class="task-group-header">
+          ${title}
+          <span class="task-group-count">${tasks.length}</span>
+        </div>
+        ${tasks.map(task => this.renderTask(task, data)).join('')}
+      </div>
+    `;
+  },
+
+  renderTask(task, data) {
     const assignee = DataManager.getStakeholder(task.assignee);
-    const checkIcon = task.status === 'complete' ? '✓' : task.status === 'blocked' ? '!' : '';
+    const checkIcon = task.status === 'complete' ? '&#10003;' : task.status === 'blocked' ? '!' : '';
 
     return `
       <div class="task-item ${task.status}">
-        <div class="task-header">
-          <div class="task-checkbox">${checkIcon}</div>
-          <div class="task-content">
-            <div class="task-title">${task.title}</div>
-            <div class="task-meta">
-              ${
-                assignee
-                  ? `
-                <span class="task-assignee">
-                  <span class="task-assignee-avatar" style="background: ${assignee.color}">${assignee.initials}</span>
-                  ${assignee.name.split(' ')[0]}
-                </span>
-              `
-                  : ''
-              }
-              ${
-                task.blockedBy
-                  ? `
-                <span class="task-blocker">⚠ ${task.blockedBy}</span>
-              `
-                  : ''
-              }
-            </div>
-            ${task.notes ? `<div class="task-notes">${task.notes}</div>` : ''}
+        <div class="task-checkbox">${checkIcon}</div>
+        <div class="task-content">
+          <div class="task-title">${task.title}</div>
+          <div class="task-meta">
+            ${assignee ? `
+              <span class="task-assignee">
+                <span class="task-avatar" style="background: ${assignee.color}">${assignee.initials}</span>
+                ${assignee.name.split(' ')[0]}
+              </span>
+            ` : ''}
+            ${task.blockedBy ? `<span class="task-blocker">${task.blockedBy}</span>` : ''}
           </div>
+          ${task.notes ? `<div class="task-notes">${task.notes}</div>` : ''}
         </div>
       </div>
     `;
   },
 
-  /**
-   * Render blockers and decisions panel
-   */
-  renderBlockersDecisions(data) {
-    const blockers = DataManager.getActiveBlockers();
-    const decisions = DataManager.getPendingDecisions();
-
-    const blockersHtml =
-      blockers.length > 0
-        ? blockers
-            .map(
-              (b) => `
-        <div class="blocker-card ${b.status}">
-          <div class="blocker-header">
-            <div class="blocker-icon">⚠</div>
-            <div class="blocker-title">${b.title}</div>
-            <span class="status-badge ${b.status}">${b.status}</span>
-          </div>
-          <div class="blocker-description">${b.description}</div>
-          <div class="blocker-impact"><strong>Impact:</strong> ${b.impact}</div>
-          ${b.mitigation ? `<div class="blocker-mitigation">✓ ${b.mitigation}</div>` : ''}
-        </div>
-      `
-            )
-            .join('')
-        : '<div class="empty-state"><div class="empty-state-icon">✓</div><div class="empty-state-text">No active blockers</div></div>';
-
-    const decisionsHtml =
-      decisions.length > 0
-        ? decisions
-            .map((d) => {
-              const owner = DataManager.getStakeholder(d.owner);
-              return `
-          <div class="decision-card">
-            <div class="decision-header">
-              <div class="decision-icon">?</div>
-              <div class="decision-title">${d.title}</div>
-            </div>
-            <div class="decision-description">${d.description}</div>
-            ${
-              owner
-                ? `
-              <div class="decision-owner">
-                <span class="task-assignee-avatar" style="background: ${owner.color}; width: 16px; height: 16px; font-size: 8px;">${owner.initials}</span>
-                Awaiting ${owner.name.split(' ')[0]}
-              </div>
-            `
-                : ''
-            }
-          </div>
-        `;
-            })
-            .join('')
-        : '';
-
-    return `
-      <div class="section-panel">
-        <div class="panel-header">
-          <h3 class="panel-title">Blockers & Risks</h3>
-          <span class="panel-count">${blockers.length}</span>
-        </div>
-        <div class="panel-content">
-          <div class="blocker-list">${blockersHtml}</div>
-        </div>
-      </div>
-      ${
-        decisions.length > 0
-          ? `
-        <div class="section-panel" style="margin-top: var(--space-4)">
-          <div class="panel-header">
-            <h3 class="panel-title">Pending Decisions</h3>
-            <span class="panel-count">${decisions.length}</span>
-          </div>
-          <div class="panel-content">
-            <div class="decision-list">${decisionsHtml}</div>
-          </div>
-        </div>
-      `
-          : ''
-      }
-    `;
-  },
-
-  /**
-   * Render action items panel
-   */
   renderActionItems(data) {
-    const items = data.actionItems;
+    const container = document.getElementById('action-items');
+    const countEl = document.getElementById('action-count');
+    const items = data.actionItems.filter(i => i.status !== 'complete');
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const itemsHtml = items
-      .map((item) => {
-        const assignee = DataManager.getStakeholder(item.assignee);
-        const dueDate = new Date(item.dueDate);
-        dueDate.setHours(0, 0, 0, 0);
-        const isOverdue = dueDate < today && item.status !== 'complete';
-        const daysUntil = DataManager.getDaysUntil(item.dueDate);
+    countEl.textContent = items.length;
 
-        let dueText = DataManager.formatDate(item.dueDate);
-        if (isOverdue) {
-          dueText = `${Math.abs(daysUntil)}d overdue`;
-        } else if (daysUntil === 0) {
-          dueText = 'Due today';
-        } else if (daysUntil <= 3) {
-          dueText = `${daysUntil}d left`;
-        }
+    if (items.length === 0) {
+      container.innerHTML = '<div class="empty-state"><div class="empty-icon">&#10003;</div><div class="empty-text">All caught up!</div></div>';
+      return;
+    }
 
-        return `
+    // Sort by due date, overdue first
+    const sorted = [...items].sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+
+    container.innerHTML = sorted.map(item => {
+      const assignee = DataManager.getStakeholder(item.assignee);
+      const dueDate = new Date(item.dueDate);
+      dueDate.setHours(0, 0, 0, 0);
+      const isOverdue = dueDate < today;
+      const daysUntil = DataManager.getDaysUntil(item.dueDate);
+
+      let dueText = DataManager.formatDate(item.dueDate);
+      if (isOverdue) {
+        dueText = `${Math.abs(daysUntil)}d overdue`;
+      } else if (daysUntil === 0) {
+        dueText = 'Due today';
+      } else if (daysUntil <= 3) {
+        dueText = `${daysUntil}d left`;
+      }
+
+      return `
         <div class="action-item ${isOverdue ? 'overdue' : ''} ${item.status}">
           <div class="action-checkbox"></div>
           <div class="action-content">
             <div class="action-title">${item.title}</div>
             <div class="action-meta">
               <span class="action-due">${dueText}</span>
-              ${
-                assignee
-                  ? `
+              ${assignee ? `
                 <span class="action-assignee">
-                  <span class="task-assignee-avatar" style="background: ${assignee.color}; width: 14px; height: 14px; font-size: 7px;">${assignee.initials}</span>
+                  <span class="task-avatar" style="background: ${assignee.color}; width: 16px; height: 16px; font-size: 8px;">${assignee.initials}</span>
                   ${assignee.name.split(' ')[0]}
                 </span>
-              `
-                  : ''
-              }
-              <span class="status-badge ${item.status}">${item.status.replace('_', ' ')}</span>
+              ` : ''}
             </div>
           </div>
         </div>
       `;
-      })
-      .join('');
-
-    return `
-      <div class="section-panel">
-        <div class="panel-header">
-          <h3 class="panel-title">Action Items</h3>
-          <span class="panel-count">${items.filter((i) => i.status !== 'complete').length}</span>
-        </div>
-        <div class="panel-content">
-          <div class="action-list">${itemsHtml}</div>
-        </div>
-      </div>
-    `;
+    }).join('');
   },
 
-  /**
-   * Render future scope panel
-   */
-  renderFutureScope(data) {
-    if (!data.futureScope || data.futureScope.length === 0) return '';
+  renderBlockers(data) {
+    const container = document.getElementById('blockers-list');
+    const countEl = document.getElementById('blocker-count');
 
-    const itemsHtml = data.futureScope
-      .map(
-        (item) => `
-      <div class="future-item">
-        <div class="future-header">
-          <span class="future-title">${item.title}</span>
-          <span class="status-badge ${item.status}">${item.status}</span>
-        </div>
-        <div class="future-description">${item.description}</div>
-        <div class="future-target">Target: ${item.targetDate}</div>
-      </div>
-    `
-      )
-      .join('');
+    const blockers = DataManager.getActiveBlockers();
+    const decisions = DataManager.getPendingDecisions();
+    const total = blockers.length + decisions.length;
 
-    return `
-      <div class="section-panel" style="margin-top: var(--space-4)">
-        <div class="panel-header">
-          <h3 class="panel-title">Future Scope</h3>
-          <span class="panel-count">${data.futureScope.length}</span>
+    countEl.textContent = total;
+
+    if (total === 0) {
+      container.innerHTML = '<div class="empty-state"><div class="empty-icon">&#10003;</div><div class="empty-text">No blockers or decisions</div></div>';
+      return;
+    }
+
+    let html = '';
+
+    // Blockers first
+    html += blockers.map(b => `
+      <div class="blocker-item ${b.status}">
+        <div class="blocker-header">
+          <div class="blocker-icon">!</div>
+          <div class="blocker-title">${b.title}</div>
+          <span class="blocker-badge ${b.status}">${b.status}</span>
         </div>
-        <div class="panel-content">
-          <div class="future-list">${itemsHtml}</div>
-        </div>
+        <div class="blocker-description">${b.description}</div>
+        <div class="blocker-impact"><strong>Impact:</strong> ${b.impact}</div>
+        ${b.mitigation ? `<div class="blocker-mitigation">&#10003; ${b.mitigation}</div>` : ''}
       </div>
-    `;
+    `).join('');
+
+    // Decisions
+    html += decisions.map(d => {
+      const owner = DataManager.getStakeholder(d.owner);
+      return `
+        <div class="blocker-item decision">
+          <div class="blocker-header">
+            <div class="blocker-icon">?</div>
+            <div class="blocker-title">${d.title}</div>
+            <span class="blocker-badge decision">Decision</span>
+          </div>
+          <div class="blocker-description">${d.description}</div>
+          ${owner ? `
+            <div class="action-assignee" style="margin-top: 8px;">
+              <span class="task-avatar" style="background: ${owner.color}; width: 16px; height: 16px; font-size: 8px;">${owner.initials}</span>
+              Awaiting ${owner.name.split(' ')[0]}
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }).join('');
+
+    container.innerHTML = html;
   },
 
-  /**
-   * Attach event listeners
-   */
-  attachEventListeners() {
-    // Phase card expand/collapse
-    document.querySelectorAll('.phase-card').forEach((card) => {
-      card.addEventListener('click', (e) => {
-        // Don't toggle if clicking on a link or button
-        if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON') return;
-        card.classList.toggle('expanded');
+  renderTeam(data) {
+    const container = document.getElementById('team-list');
+
+    container.innerHTML = data.stakeholders.map(s => {
+      const actionCount = DataManager.getStakeholderActionCount(s.id);
+      return `
+        <div class="team-member">
+          <div class="team-avatar" style="background: ${s.color}">${s.initials}</div>
+          <div class="team-info">
+            <div class="team-name">${s.name}</div>
+            <div class="team-role">${s.role}</div>
+          </div>
+          ${actionCount > 0 ? `<span class="team-count active">${actionCount}</span>` : ''}
+        </div>
+      `;
+    }).join('');
+  },
+
+  attachEventListeners(data) {
+    // Phase tab switching
+    document.querySelectorAll('.phase-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const phaseId = tab.dataset.phaseId;
+        const phase = data.phases.find(p => p.id === phaseId);
+        if (phase) {
+          this.activePhase = phase;
+
+          // Update active state
+          document.querySelectorAll('.phase-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+
+          // Re-render phase detail
+          this.renderPhaseDetail(phase, data);
+        }
       });
     });
-
-    // Stakeholder filter
-    document.querySelectorAll('.stakeholder-item').forEach((item) => {
-      item.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const stakeholderId = item.dataset.stakeholder;
-
-        // Toggle active state
-        document.querySelectorAll('.stakeholder-item').forEach((i) => i.classList.remove('active'));
-        item.classList.add('active');
-
-        // In a full implementation, this would filter the view
-        console.log('Filter by stakeholder:', stakeholderId);
-      });
-    });
-  },
+  }
 };
 
-// Export for use
 window.UI = UI;
