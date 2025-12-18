@@ -1,0 +1,486 @@
+{
+  "project": {
+    "name": "ATA Sales Automation Project",
+    "client": "Applied Technology Academy",
+    "consultant": "BTB AI - Ben Reeder",
+    "contractRef": "Z44XV-EYF3L-8SD8Y-GBAUK",
+    "startDate": "2025-11-28",
+    "endDate": "2026-01-28",
+    "totalInvestment": 5000,
+    "monthlyInvestment": 2500,
+    "lastUpdated": "2025-12-18"
+  },
+  "stakeholders": [
+    {
+      "id": "lynn",
+      "name": "Lynn Fisher",
+      "role": "Owner/Decision Maker",
+      "email": "lynn.f@appliedtechac.com",
+      "responsibilities": ["Strategic decisions", "Owns Hostinger domains"],
+      "initials": "LF",
+      "color": "#0077B5"
+    },
+    {
+      "id": "matt",
+      "name": "Matt Marshall",
+      "role": "IT/SaaS Manager",
+      "email": null,
+      "responsibilities": ["Primary technical contact", "Manages Zoho One", "Support escalations"],
+      "initials": "MM",
+      "color": "#059669"
+    },
+    {
+      "id": "christine",
+      "name": "Christine Harper",
+      "role": "Sales & Partnerships",
+      "email": null,
+      "responsibilities": ["Oversees sales team", "Uses Lucia for prospecting"],
+      "initials": "CH",
+      "color": "#7C3AED"
+    },
+    {
+      "id": "kim",
+      "name": "Kim",
+      "role": "Operations",
+      "email": null,
+      "responsibilities": ["Student registrations", "Zoho to Arlo transfers"],
+      "initials": "K",
+      "color": "#DB2777"
+    },
+    {
+      "id": "ben",
+      "name": "Ben Reeder",
+      "role": "Consultant",
+      "email": "benreeder@builderbenai.com",
+      "responsibilities": ["Project delivery", "Technical implementation"],
+      "initials": "BR",
+      "color": "#EA580C"
+    }
+  ],
+  "phases": [
+    {
+      "id": "phase1",
+      "number": 1,
+      "name": "Inbound Automation",
+      "description": "Automated email responses for Zoho form submissions",
+      "deadline": "2025-12-12",
+      "status": "in_progress",
+      "tasks": [
+        {
+          "id": "p1t1",
+          "title": "Audit all 8 Zoho forms",
+          "description": "Document current form configurations and fields",
+          "status": "not_started",
+          "assignee": "ben",
+          "dependsOn": ["p1t2"],
+          "blockedBy": "Need form access from Matt",
+          "notes": "Forms transferred from Lauren to Matt"
+        },
+        {
+          "id": "p1t2",
+          "title": "Get form access from Matt",
+          "description": "Matt now owns forms (transferred from Lauren)",
+          "status": "in_progress",
+          "assignee": "matt",
+          "dependsOn": [],
+          "blockedBy": null,
+          "notes": "Matt confirmed form ownership transfer complete"
+        },
+        {
+          "id": "p1t3",
+          "title": "Document current thank-you emails",
+          "description": "Some forms have catalogs attached, need to audit all",
+          "status": "not_started",
+          "assignee": "ben",
+          "dependsOn": ["p1t1"],
+          "blockedBy": null,
+          "notes": null
+        },
+        {
+          "id": "p1t4",
+          "title": "Configure automated email responses",
+          "description": "Triggered by form submissions with personalized templates",
+          "status": "not_started",
+          "assignee": "ben",
+          "dependsOn": ["p1t3"],
+          "blockedBy": null,
+          "notes": null
+        },
+        {
+          "id": "p1t5",
+          "title": "Create personalized email templates",
+          "description": "Based on funding source, course interest, credentialing path",
+          "status": "not_started",
+          "assignee": "ben",
+          "dependsOn": ["p1t1"],
+          "blockedBy": null,
+          "notes": "70% of leads are credentialing/military"
+        }
+      ]
+    },
+    {
+      "id": "phase2",
+      "number": 2,
+      "name": "System Integrations",
+      "description": "Connect Arlo TMS and Cypher LMS systems",
+      "deadline": "2025-12-30",
+      "status": "in_progress",
+      "tasks": [
+        {
+          "id": "p2t1",
+          "title": "Build Arlo to Cypher LMS automation",
+          "description": "Transfer First name, Last name, Email, Course code",
+          "status": "in_progress",
+          "assignee": "ben",
+          "dependsOn": ["p2t4"],
+          "blockedBy": "Need Arlo API authentication resolved",
+          "notes": "ATA public classes only, exclude private/white-label"
+        },
+        {
+          "id": "p2t2",
+          "title": "Resolve Arlo API authentication",
+          "description": "Cannot authenticate to pull registration data",
+          "status": "blocked",
+          "assignee": "matt",
+          "dependsOn": [],
+          "blockedBy": "Awaiting Arlo support response",
+          "notes": "Matt escalating with Arlo support"
+        },
+        {
+          "id": "p2t3",
+          "title": "Investigate Zoho to Arlo possibilities",
+          "description": "Arlo API cannot create orders programmatically",
+          "status": "blocked",
+          "assignee": "ben",
+          "dependsOn": [],
+          "blockedBy": "Arlo API limitation - cannot create orders",
+          "notes": "Workaround: Create contacts via API, Kim manually creates orders"
+        },
+        {
+          "id": "p2t4",
+          "title": "Review Arlo API documentation",
+          "description": "Confirm capabilities and limitations",
+          "status": "complete",
+          "assignee": "ben",
+          "dependsOn": [],
+          "blockedBy": null,
+          "notes": "Confirmed: Can find orders by ID but cannot create. 20-25 webhook endpoints available."
+        },
+        {
+          "id": "p2t5",
+          "title": "Confirm Cypher API capabilities",
+          "description": "Verify student enrollment endpoints",
+          "status": "not_started",
+          "assignee": "ben",
+          "dependsOn": [],
+          "blockedBy": null,
+          "notes": "Need to check course timing - courses may not exist 2+ weeks out"
+        },
+        {
+          "id": "p2t6",
+          "title": "Set up N8N workflow for registrations",
+          "description": "Webhook triggers on new Arlo registration",
+          "status": "complete",
+          "assignee": "ben",
+          "dependsOn": [],
+          "blockedBy": null,
+          "notes": "Workflow created, triggers on registration but only gets registration ID"
+        }
+      ]
+    },
+    {
+      "id": "phase3",
+      "number": 3,
+      "name": "Outbound Infrastructure",
+      "description": "Cold email infrastructure for corporate outreach",
+      "deadline": "2026-01-10",
+      "status": "not_started",
+      "tasks": [
+        {
+          "id": "p3t1",
+          "title": "Get list of available Hostinger domains",
+          "description": "Lynn has multiple domains with free email available",
+          "status": "not_started",
+          "assignee": "lynn",
+          "dependsOn": [],
+          "blockedBy": null,
+          "notes": null
+        },
+        {
+          "id": "p3t2",
+          "title": "Set up 3 dedicated domains",
+          "description": "From Hostinger inventory",
+          "status": "not_started",
+          "assignee": "ben",
+          "dependsOn": ["p3t1"],
+          "blockedBy": null,
+          "notes": null
+        },
+        {
+          "id": "p3t3",
+          "title": "Create 9 mailboxes (3 per domain)",
+          "description": "Using Zap Mail for email hosting",
+          "status": "not_started",
+          "assignee": "ben",
+          "dependsOn": ["p3t2", "p3t7"],
+          "blockedBy": null,
+          "notes": "Lynn to create Zap Mail account"
+        },
+        {
+          "id": "p3t4",
+          "title": "Configure DNS records (SPF, DKIM, DMARC)",
+          "description": "Required for email deliverability",
+          "status": "not_started",
+          "assignee": "ben",
+          "dependsOn": ["p3t2"],
+          "blockedBy": null,
+          "notes": null
+        },
+        {
+          "id": "p3t5",
+          "title": "Warm up domains for sender reputation",
+          "description": "3-week warmup period required",
+          "status": "not_started",
+          "assignee": "ben",
+          "dependsOn": ["p3t3", "p3t4"],
+          "blockedBy": null,
+          "notes": "Start ASAP - takes 3 weeks minimum"
+        },
+        {
+          "id": "p3t6",
+          "title": "Configure Instantly for email sequencing",
+          "description": "Connect mailboxes and set up campaigns",
+          "status": "not_started",
+          "assignee": "ben",
+          "dependsOn": ["p3t3", "p3t8"],
+          "blockedBy": null,
+          "notes": null
+        },
+        {
+          "id": "p3t7",
+          "title": "Create Zap Mail account",
+          "description": "Email hosting service account setup",
+          "status": "not_started",
+          "assignee": "lynn",
+          "dependsOn": [],
+          "blockedBy": null,
+          "notes": "Lynn to set up with credit card"
+        },
+        {
+          "id": "p3t8",
+          "title": "Create Instantly account",
+          "description": "Cold email platform account setup",
+          "status": "not_started",
+          "assignee": "lynn",
+          "dependsOn": [],
+          "blockedBy": null,
+          "notes": "Lynn to set up with credit card, invite Ben"
+        },
+        {
+          "id": "p3t9",
+          "title": "Create corporate outreach templates",
+          "description": "4-touch sequence: Intro, Value prop, Case study, Soft close",
+          "status": "not_started",
+          "assignee": "ben",
+          "dependsOn": [],
+          "blockedBy": null,
+          "notes": "Christine to provide target persona details"
+        },
+        {
+          "id": "p3t10",
+          "title": "Build Lucia to Instantly workflow",
+          "description": "Pull prospect lists and load into campaigns",
+          "status": "not_started",
+          "assignee": "ben",
+          "dependsOn": ["p3t6"],
+          "blockedBy": null,
+          "notes": "Already paying for Lucia - leverage existing tool"
+        }
+      ]
+    },
+    {
+      "id": "phase4",
+      "number": 4,
+      "name": "Handoff & Training",
+      "description": "Train team and deliver documentation",
+      "deadline": "2026-01-28",
+      "status": "not_started",
+      "tasks": [
+        {
+          "id": "p4t1",
+          "title": "Train ATA team on all new systems",
+          "description": "Hands-on training sessions",
+          "status": "not_started",
+          "assignee": "ben",
+          "dependsOn": [],
+          "blockedBy": null,
+          "notes": null
+        },
+        {
+          "id": "p4t2",
+          "title": "Deliver documentation for all automations",
+          "description": "SOPs, troubleshooting guides, architecture diagrams",
+          "status": "not_started",
+          "assignee": "ben",
+          "dependsOn": [],
+          "blockedBy": null,
+          "notes": null
+        },
+        {
+          "id": "p4t3",
+          "title": "Full system operational verification",
+          "description": "End-to-end testing of all automations",
+          "status": "not_started",
+          "assignee": "ben",
+          "dependsOn": [],
+          "blockedBy": null,
+          "notes": null
+        }
+      ]
+    }
+  ],
+  "blockers": [
+    {
+      "id": "b1",
+      "title": "Arlo API cannot create orders programmatically",
+      "description": "Confirmed by Arlo support. Can find orders but cannot create them.",
+      "impact": "Cannot fully automate Zoho to Arlo flow",
+      "mitigation": "Create contacts via API, Kim manually creates orders, automate post-order steps",
+      "status": "acknowledged",
+      "affectedTasks": ["p2t3"]
+    },
+    {
+      "id": "b2",
+      "title": "Arlo API authentication issue",
+      "description": "Cannot authenticate to Arlo API to pull registration data after webhook trigger",
+      "impact": "Blocks Arlo to Cypher automation",
+      "mitigation": "Matt escalating with Arlo support",
+      "status": "pending",
+      "affectedTasks": ["p2t1", "p2t2"]
+    },
+    {
+      "id": "b3",
+      "title": "Zoho Campaigns vs Marketing Automation conflict",
+      "description": "Cannot run Campaigns AND Marketing Automation simultaneously in Zoho",
+      "impact": "Limited automation options within Zoho",
+      "mitigation": "Use external tools (Instantly) for sequences",
+      "status": "acknowledged",
+      "affectedTasks": []
+    }
+  ],
+  "pendingDecisions": [
+    {
+      "id": "d1",
+      "title": "Use Constant Contact integration or build custom?",
+      "description": "ATA pays $50/month for Constant Contact. Could integrate with Zoho.",
+      "owner": "lynn",
+      "status": "pending",
+      "options": ["Constant Contact + Zoho integration", "Instantly only", "Both platforms"],
+      "decision": null
+    },
+    {
+      "id": "d2",
+      "title": "Which Hostinger domains to use for outbound?",
+      "description": "Lynn has multiple domains available",
+      "owner": "lynn",
+      "status": "pending",
+      "options": [],
+      "decision": null
+    }
+  ],
+  "actionItems": [
+    {
+      "id": "a1",
+      "title": "Escalate Arlo API auth issue with support",
+      "assignee": "matt",
+      "dueDate": "2025-12-20",
+      "status": "in_progress",
+      "notes": "Email sent to support@arlo.co"
+    },
+    {
+      "id": "a2",
+      "title": "Provide list of available Hostinger domains",
+      "assignee": "lynn",
+      "dueDate": "2025-12-20",
+      "status": "pending",
+      "notes": null
+    },
+    {
+      "id": "a3",
+      "title": "Create Zap Mail account and invite Ben",
+      "assignee": "lynn",
+      "dueDate": "2025-12-20",
+      "status": "pending",
+      "notes": "Needed for email infrastructure"
+    },
+    {
+      "id": "a4",
+      "title": "Create Instantly account and invite Ben",
+      "assignee": "lynn",
+      "dueDate": "2025-12-20",
+      "status": "pending",
+      "notes": "Needed for email sequences"
+    },
+    {
+      "id": "a5",
+      "title": "Send target persona details for outreach templates",
+      "assignee": "christine",
+      "dueDate": "2025-12-23",
+      "status": "pending",
+      "notes": "Types of companies, job titles, industries"
+    },
+    {
+      "id": "a6",
+      "title": "Set up shared Google Drive folder",
+      "assignee": "matt",
+      "dueDate": "2025-12-20",
+      "status": "in_progress",
+      "notes": "For project documents and collaboration"
+    },
+    {
+      "id": "a7",
+      "title": "Transfer Christine admin access in Arlo",
+      "assignee": "matt",
+      "dueDate": "2025-12-20",
+      "status": "pending",
+      "notes": "Christine needs admin for registrations"
+    }
+  ],
+  "futureScope": [
+    {
+      "id": "f1",
+      "title": "CompTIA LTI Integration",
+      "description": "Software licensing agreement signed. Implementation after holidays.",
+      "targetDate": "2026-01",
+      "status": "scoped"
+    },
+    {
+      "id": "f2",
+      "title": "Hack the Box Integration",
+      "description": "Waiting on API key from Hack the Box. Not responsive.",
+      "targetDate": "TBD",
+      "status": "blocked"
+    },
+    {
+      "id": "f3",
+      "title": "Exam Voucher Follow-up Automation",
+      "description": "Auto emails at 1, 3, 6 months for students who haven't requested voucher",
+      "targetDate": "2026-Q1",
+      "status": "proposed"
+    },
+    {
+      "id": "f4",
+      "title": "Exam Result Tracking Automation",
+      "description": "Auto follow-up after voucher issued to track pass/fail status",
+      "targetDate": "2026-Q1",
+      "status": "proposed"
+    },
+    {
+      "id": "f5",
+      "title": "Arlo to Zoho Course Sync",
+      "description": "Push course completion and registration data back to Zoho contacts",
+      "targetDate": "2026-Q1",
+      "status": "proposed"
+    }
+  ]
+}
