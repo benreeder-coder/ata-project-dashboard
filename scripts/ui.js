@@ -154,10 +154,109 @@ const UI = {
   },
 
   ensureDashboardStructure() {
-    // Check if dashboard structure exists
+    // Check if dashboard structure exists, create it if not
     if (!document.getElementById('phase-nav')) {
-      // Need to reload the page to restore dashboard HTML
-      window.location.reload();
+      document.body.innerHTML = `
+        <div class="app">
+          <!-- Top Bar -->
+          <header class="topbar">
+            <div class="topbar-left">
+              <img src="assets/logo.webp" alt="ATA" class="logo">
+              <div class="project-info">
+                <h1 class="project-name">BTB AI - ATA Automation</h1>
+                <span class="project-client">Project Dashboard</span>
+              </div>
+            </div>
+            <div class="topbar-right">
+              <div class="meta-pill">
+                <span class="meta-label">Updated</span>
+                <span class="meta-value" id="last-updated">--</span>
+              </div>
+              <div class="user-menu" id="user-menu"></div>
+            </div>
+          </header>
+
+          <!-- Main Content -->
+          <main class="main">
+            <!-- Hero Stats Row -->
+            <section class="hero-stats">
+              <div class="stat-card stat-progress">
+                <div class="stat-ring" id="progress-ring">
+                  <svg viewBox="0 0 120 120">
+                    <circle class="ring-bg" cx="60" cy="60" r="52" />
+                    <circle class="ring-fill" cx="60" cy="60" r="52" id="ring-fill" />
+                  </svg>
+                  <div class="ring-content">
+                    <span class="ring-number" id="progress-percent">0</span>
+                    <span class="ring-label">complete</span>
+                  </div>
+                </div>
+                <div class="stat-details">
+                  <span class="stat-title">Project Progress</span>
+                  <span class="stat-subtitle" id="tasks-summary">0 of 0 tasks</span>
+                </div>
+              </div>
+
+              <div class="stat-card stat-timeline">
+                <div class="timeline-visual">
+                  <div class="timeline-bar">
+                    <div class="timeline-elapsed" id="timeline-elapsed"></div>
+                    <div class="timeline-marker" id="timeline-marker"></div>
+                  </div>
+                  <div class="timeline-dates">
+                    <span id="start-date">--</span>
+                    <span id="end-date">--</span>
+                  </div>
+                </div>
+                <div class="stat-details">
+                  <span class="stat-title" id="days-remaining">-- days left</span>
+                  <span class="stat-subtitle" id="timeline-status">On track</span>
+                </div>
+              </div>
+
+              <div class="stat-card stat-alerts" id="alerts-card">
+                <div class="alert-indicators" id="alert-indicators"></div>
+                <div class="stat-details">
+                  <span class="stat-title" id="alerts-title">All Clear</span>
+                  <span class="stat-subtitle" id="alerts-subtitle">No blockers</span>
+                </div>
+              </div>
+            </section>
+
+            <!-- Phase Navigation -->
+            <nav class="phase-nav" id="phase-nav"></nav>
+
+            <!-- Active Phase Detail -->
+            <section class="phase-detail" id="phase-detail"></section>
+
+            <!-- Bottom Panels -->
+            <section class="bottom-panels">
+              <div class="panel panel-actions">
+                <div class="panel-header">
+                  <h3>Action Items</h3>
+                  <span class="panel-count" id="action-count">0</span>
+                </div>
+                <div class="panel-body" id="action-items"></div>
+              </div>
+
+              <div class="panel panel-blockers">
+                <div class="panel-header">
+                  <h3>Blockers & Decisions</h3>
+                  <span class="panel-count" id="blocker-count">0</span>
+                </div>
+                <div class="panel-body" id="blockers-list"></div>
+              </div>
+
+              <div class="panel panel-team">
+                <div class="panel-header">
+                  <h3>Team</h3>
+                </div>
+                <div class="panel-body" id="team-list"></div>
+              </div>
+            </section>
+          </main>
+        </div>
+      `;
     }
   },
 
